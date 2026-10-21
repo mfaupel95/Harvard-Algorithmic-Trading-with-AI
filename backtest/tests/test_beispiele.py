@@ -25,6 +25,8 @@ class BeispielBacktests(unittest.TestCase):
             self.assertIn("commission=KOMMISSION_JE_SEITE", text, f"{name} gibt die Kommission nicht an")
             self.assertIn("spread=SPREAD", text, f"{name} gibt den Spread nicht an")
             self.assertIn("kostenkopf", text, f"{name} weist das Ergebnis nicht mit Kostensatz aus")
+            self.assertIn("okx.com", text, f"{name} nennt die Quelle des Kostensatzes nicht")
+            self.assertIn("KEINE", text, f"{name} kennzeichnet den Kostensatz nicht als Annahme")
 
     def test_kosten_sind_rechenbar(self):
         kommission, spread = 0.002, 0.0005
@@ -43,7 +45,7 @@ class BeispielBacktests(unittest.TestCase):
         doku = BACKTEST / "KOSTEN.md"
         self.assertTrue(doku.exists(), "backtest/KOSTEN.md fehlt")
         text = doku.read_text(encoding="utf-8")
-        for wert in ("0,0016", "−18,68 %", "−0,197", "0,5 %"):
+        for wert in ("0,0016", "−18,68 %", "+0,173", "0,5 %", "+34,26 %", "0,05 % Taker"):
             self.assertIn(wert, text, f"KOSTEN.md traegt den gemessenen Wert {wert} nicht")
 
 

@@ -10,9 +10,12 @@ DATA = Path(__file__).resolve().parent / "data" / "BTC-6h-1000wks-data.csv"
 KAPITAL = 100000
 
 # Kostenmodell: ohne diese Angaben ist kein Ergebnis eine Aussage.
-# Messwerte statt Annahmen - Break-even dieser Strategie liegt bei ~0,0016 je Seite,
-# Hintergrund in backtest/KOSTEN.md.
-KOMMISSION_JE_SEITE = 0.002  # 0,2 % je Seite
+# KOMMISSION_JE_SEITE = 0.002 ist der hardcodierte Default des Upstream-Repos, KEINE
+# Messung. OKX erhebt fuer Futures regulär 0,05 % Taker / 0,02 % Maker (okx.com,
+# Trading Fee Rules) - dieser Satz liegt also 4x ueber dem realen Taker-Satz und ist
+# bewusst konservativ. Beide Saetze sind in backtest/KOSTEN.md gegenübergestellt,
+# samt Auswirkung auf das Ergebnis.
+KOMMISSION_JE_SEITE = 0.002  # 0,2 % je Seite, konservativ
 SPREAD = 0.0005              # 5 Basispunkte je Seite
 
 data = pd.read_csv(DATA, parse_dates=['datetime'], index_col='datetime')

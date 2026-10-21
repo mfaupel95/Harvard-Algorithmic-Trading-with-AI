@@ -51,8 +51,40 @@ Repo hinterlegte Wert `0.002` liegt über dem Break-even und kehrt das Vorzeiche
 die Strategie ist bei 0,001 Gebuehr leicht positiv, bei 0,002 negativ. Die
 Kostenannahme ist hier nicht die Rundung — sie ist die Aussage.
 
-Mit Spread 0,0005 (der Wert, den die Skripte jetzt setzen) wird es schlimmer:
-0,0020 + 0,0005 → −29,98 %.
+## Der Kostensatz ist eine ANNAHME, nicht eine Messung
+
+Direkte Antwort, ob `0.002` aus echten Fills stammt: **nein.** Der Wert steht seit je im
+Upstream-Repo als `commission=0.002` — das Kommentarzeichen `# .001` direkt daneben
+zeigt, dass der Autor selbst unsicher war. `SPREAD = 0.0005` ist eine eigene Annahme.
+Gemessen ist allein der Zusammenhang zwischen Kostensatz und Ergebnis.
+
+OKX erhebt fuer Futures regulär **0,05 % Taker / 0,02 % Maker** (Quelle: okx.com,
+Trading Fee Rules FAQ). Der Repo-Default liegt damit 4x ueber dem realen Taker-Satz.
+Beide Strategien, 12.903 Kerzen, 217 bzw. 143 Runden:
+
+| Strategie | Kommission je Seite | Spread | gesamt | Suchfenster | Prueffenster |
+| --- | --- | --- | --- | --- | --- |
+| `BBSqueezeADX` | 0,002 (Repo-Default) | 0,0005 | −29,98 % | +0,17 % | −27,96 % |
+| `BBSqueezeADX` | 0,0005 (OKX Taker) | 0,0005 | **+34,26 %** | +40,06 % | +4,54 % |
+| `BBSqueezeADX` | 0,0005 (OKX Taker) | 0 | **+44,42 %** | +46,85 % | +11,87 % |
+| `BBSqueezeADX` | 0,0002 (OKX Maker) | 0 | **+74,58 %** | — | — |
+| `BollingerBandBreakoutShort` | 0,002 (Repo-Default) | 0,0005 | −47,87 % | −23,19 % | −37,18 % |
+| `BollingerBandBreakoutShort` | 0,0005 (OKX Taker) | 0,0005 | −26,93 % | −3,47 % | −20,43 % |
+| `BollingerBandBreakoutShort` | 0,0002 (OKX Maker) | 0 | −14,31 % | — | — |
+
+Daraus zwei Dinge:
+
+- **`BBSqueezeADX` ist kein Ergebnis, sondern ein Kostensatz.** Bei 0,002 verliert es,
+  bei 0,0005 gewinnt es — und es traegt den Gewinn in beiden Fenstern (Such +40,06 %,
+  Prueff +4,54 %), waerend der Gewinn beim Repo-Default allein im ersten Fenster
+  steckt. Der Break-even 0,0016 liegt genau zwischen den Saetzen.
+- **`BollingerBandBreakoutShort` verliert bei JEDEM der drei Saetze und in beiden
+  Fenstern.** Das ist das eine Beispiel im Repo, dessen negatives Ergebnis nicht von der
+  Kostenannahme abhaengt.
+
+Die Skripte rechnen weiter mit dem konservativen 0,002, weil das die strengere Annahme
+ist. Wer den realen Satz fahren will, setzt `KOMMISSION_JE_SEITE = 0.0005` — die
+Messzahlen dafuer stehen oben.
 
 ## Was der Optimierer nicht darstellen kann
 
