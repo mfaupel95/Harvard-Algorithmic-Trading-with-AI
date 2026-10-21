@@ -3,10 +3,20 @@ import numpy as np
 import talib
 from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
+from pathlib import Path
+
+# Datenpfad relativ zur Datei, nicht haarverfilzt auf ein anderes Betriebssystem.
+DATA = Path(__file__).resolve().parent / "data" / "BTC-6h-1000wks-data.csv"
+KAPITAL = 100000
+
+# Kostenmodell: ohne diese Angaben ist kein Ergebnis eine Aussage.
+# Messwerte statt Annahmen - Break-even dieser Strategie liegt bei ~0,0016 je Seite,
+# Hintergrund in backtest/KOSTEN.md.
+KOMMISSION_JE_SEITE = 0.002  # 0,2 % je Seite
+SPREAD = 0.0005              # 5 Basispunkte je Seite
 
 # Load the filtered data
-data_path = '/Users/md/Dropbox/dev/github/Harvard-Algorithmic-Trading-with-AI-/backtest/data/BTC-6h-1000wks-data.csv'
-data = pd.read_csv(data_path, parse_dates=['datetime'], index_col='datetime')
+data = pd.read_csv(DATA, parse_dates=['datetime'], index_col='datetime')
 
 # Bollinger Band Squeeze with ADX Strategy
 class BBSqueezeADX(Strategy):
@@ -80,17 +90,44 @@ class BBSqueezeADX(Strategy):
 # Based on the CSV headers: datetime,open,high,low,close,volume
 data.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
 
+def kostenkopf(titel, st):
+    """Ergebnis mit Kostensatz: Gebuehr je Seite, Spread, Anzahl Runden, netto je Runde."""
+    runden = int(st['# Trades'])
+    kosten = (KOMMISSION_JE_SEITE + SPREAD) * 2 * 100
+    netto = (st['Equity Final [$]'] - KAPITAL) / KAPITAL / runden * 100 if runden else float('nan')
+    print(f"{titel}: {st['Return [%]']:.2f} % | {runden} Runden | "
+          f"Kosten {kosten:.2f} % je Runde | netto {netto:.3f} % je Runde | "
+          f"Max. Drawdown {st['Max. Drawdown [%]']:.2f} %")
+
+
 # Create and configure the backtest
-bt = Backtest(data, BBSqueezeADX, cash=100000, commission=0.002) # .001 
+bt = Backtest(data, BBSqueezeADX, cash=KAPITAL,
+              commission=KOMMISSION_JE_SEITE, spread=SPREAD)
 
 # Run the backtest with default parameters and print the results
 print("🌟 MOON DEV BACKTEST STARTING - Default Parameters 🌟")
 stats_default = bt.run()
 print("\n📊 MOON DEV DEFAULT PARAMETERS RESULTS:")
 print(stats_default)
+kostenkopf('Standard-Parameter', stats_default)
+
+# Trennung von Suchfenster und Prueffenster. Der Optimierer weiter unten sucht im
+# Ganzen, deshalb wird hier zusaetzlich geteilt gerechnet: ohne diese Zeile ist
+# das Optimierungsergebnis der groesste Wert einer Suche, kein Beweis.
+halb = len(data) // 2
+for name, teil in (('Suchfenster (erste Haelfte)', data.iloc[:halb]),
+                   ('Prueffenster (zweite Haelfte)', data.iloc[halb:])):
+    st = Backtest(teil, BBSqueezeADX, cash=KAPITAL,
+                  commission=KOMMISSION_JE_SEITE, spread=SPREAD).run()
+    kostenkopf(name, st)
 
 # Now perform the optimization
 print("\n🔍 MOON DEV OPTIMIZATION STARTING - This may take a while... 🔍")
+trials = (len(range(10, 15, 5)) * len(np.arange(1.5, 2.1, 0.5)) * len(range(10, 20, 5))
+          * len(np.arange(1.0, 2, 0.5)) * len(range(10, 20, 2)) * len(range(20, 30, 5))
+          * len(range(3, 4, 2)) * len(range(2, 4, 1)))
+print(f"Parameter-Suche: {trials} Kombinationen. Der groesste Wert dieser Menge ist"
+      f" das Ergebnis - die Zahl der Versuche gehoert zur Aussage.")
 optimization_results = bt.optimize(
     bb_window=range(10, 15, 5),
     bb_std=[round(i, 1) for i in np.arange(1.5, 2.1, 0.5)],
@@ -118,3 +155,12 @@ print(f"ADX Period: {optimization_results._strategy.adx_period}")
 print(f"ADX Threshold: {optimization_results._strategy.adx_threshold}")
 print(f"Take Profit: {optimization_results._strategy.take_profit * 100:.1f}%")
 print(f"Stop Loss: {optimization_results._strategy.stop_loss * 100:.1f}%")
+
+# Dieselbe Kombination auf dem Prueffenster: traegt der Fund ueber die Haelften?
+for k in ('bb_window', 'bb_std', 'keltner_window', 'keltner_atr_mult',
+          'adx_period', 'adx_threshold', 'take_profit', 'stop_loss'):
+    setattr(BBSqueezeADX, k, getattr(optimization_results._strategy, k))
+for name, teil in (('Suchfenster', data.iloc[:halb]), ('Prueffenster', data.iloc[halb:])):
+    st = Backtest(teil, BBSqueezeADX, cash=KAPITAL,
+                  commission=KOMMISSION_JE_SEITE, spread=SPREAD).run()
+    kostenkopf(f"Gefundene Parameter im {name}", st)
