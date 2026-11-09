@@ -1,5 +1,27 @@
 # Kostenmodell der Beispiel-Backtests
 
+## Korrektur der Fenstertrennung (09.11.2026)
+
+Die bisherigen Optimierer suchten auf dem gesamten Datensatz. Das danach
+als Prueffenster bezeichnete zweite Halbfenster war deshalb nicht ungesehen.
+Beide Skripte optimieren jetzt ausschliesslich auf `data.iloc[:halb]` und
+wenden die dort gefundenen Parameter anschliessend auf beide Haelften an.
+Der Gesamtlauf mit Standardparametern bleibt rein beschreibend.
+
+Die untenstehenden historischen Messzahlen wurden mit dieser Aenderung NICHT
+neu berechnet. Insbesondere sind die alten Optimierer-Funde und deren geteilte
+Auswertung keine unabhaengigen Out-of-sample-Nachweise und keine Referenzwerte
+fuer die korrigierte Suche. Auch die Standardparameter und das Fenster sind
+bereits bekannt: die Korrektur schafft keinen neuen prospektiven Nachweis.
+Kostenmodell und Kapital bleiben unveraendert; dessen Engine-Semantik ist hier
+nicht neu validiert. Keine Profitabilitaets- oder Handelsfreigabe ableiten.
+
+Offline-Regressionspruefung: `python -B -m unittest discover -s tests -v`
+aus `backtest/`. `test_holdout.py` fuehrt nur per AST ausgewaehlte
+Konstruktor-/Split-Zuweisungen mit Test-Doubles aus (gerade/ungerade Zeilenzahl,
+disjunkte Fenster, identische Kosten). Es importiert weder die Beispielskripte
+noch die Backtest-Engine und ersetzt keinen echten Strategie-Backtest.
+
 Ein Backtest ohne Kostenmodell ist keine Aussage. Beide Beispielskripte tragen deshalb
 einen festen Kostensatz mit, und jedes Ergebnis wird mit `Kosten je Runde`,
 `Anzahl Runden` und `netto je Runde` ausgewiesen (`kostenkopf()`).

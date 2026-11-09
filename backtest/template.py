@@ -64,10 +64,11 @@ print("Default Parameters Results:")
 print(stats_default)
 kostenkopf('Standard-Parameter', stats_default)
 
-# Trennung von Suchfenster und Prueffenster. Der Optimierer weiter unten sucht im
-# Ganzen, deshalb wird hier zusaetzlich geteilt gerechnet: ohne diese Zeile ist
-# das Optimierungsergebnis der groesste Wert einer Suche, kein Beweis.
+# Chronologische Trennung: Der Optimierer darf nur die erste Haelfte sehen.
+# Der Gesamtlauf oben ist eine Beschreibung, kein unabhaengiger Prueflauf.
 halb = len(data) // 2
+bt_suche = Backtest(data.iloc[:halb], BollingerBandBreakoutShort, cash=KAPITAL,
+                    commission=KOMMISSION_JE_SEITE, spread=SPREAD)
 for name, teil in (('Suchfenster (erste Haelfte)', data.iloc[:halb]),
                    ('Prueffenster (zweite Haelfte)', data.iloc[halb:])):
     st = Backtest(teil, BollingerBandBreakoutShort, cash=KAPITAL,
@@ -80,7 +81,7 @@ trials = (len(range(10, 20, 5)) * len(np.arange(1.5, 3.5, 0.1))
 print(f"\nParameter-Suche: {trials} Kombinationen. Der groesste Wert dieser Menge ist"
       f" das Ergebnis - die Zahl der Versuche gehoert zur Aussage.")
 
-optimization_results = bt.optimize(
+optimization_results = bt_suche.optimize(
     window=range(10, 20, 5),
     num_std=[round(i, 1) for i in np.arange(1.5, 3.5, 0.1)],
     take_profit=[i / 100 for i in range(1, 7, 1)],  # Optimize TP from 1% to 9%
