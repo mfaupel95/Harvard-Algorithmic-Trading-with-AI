@@ -114,10 +114,11 @@ print("\n📊 MOON DEV DEFAULT PARAMETERS RESULTS:")
 print(stats_default)
 kostenkopf('Standard-Parameter', stats_default)
 
-# Trennung von Suchfenster und Prueffenster. Der Optimierer weiter unten sucht im
-# Ganzen, deshalb wird hier zusaetzlich geteilt gerechnet: ohne diese Zeile ist
-# das Optimierungsergebnis der groesste Wert einer Suche, kein Beweis.
+# Chronologische Trennung: Der Optimierer darf nur die erste Haelfte sehen.
+# Der Gesamtlauf oben ist eine Beschreibung, kein unabhaengiger Prueflauf.
 halb = len(data) // 2
+bt_suche = Backtest(data.iloc[:halb], BBSqueezeADX, cash=KAPITAL,
+                    commission=KOMMISSION_JE_SEITE, spread=SPREAD)
 for name, teil in (('Suchfenster (erste Haelfte)', data.iloc[:halb]),
                    ('Prueffenster (zweite Haelfte)', data.iloc[halb:])):
     st = Backtest(teil, BBSqueezeADX, cash=KAPITAL,
@@ -131,7 +132,7 @@ trials = (len(range(10, 15, 5)) * len(np.arange(1.5, 2.1, 0.5)) * len(range(10, 
           * len(range(3, 4, 2)) * len(range(2, 4, 1)))
 print(f"Parameter-Suche: {trials} Kombinationen. Der groesste Wert dieser Menge ist"
       f" das Ergebnis - die Zahl der Versuche gehoert zur Aussage.")
-optimization_results = bt.optimize(
+optimization_results = bt_suche.optimize(
     bb_window=range(10, 15, 5),
     bb_std=[round(i, 1) for i in np.arange(1.5, 2.1, 0.5)],
     keltner_window=range(10, 20, 5),
